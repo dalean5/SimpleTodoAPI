@@ -1,0 +1,35 @@
+name: CI for API
+on:
+  pull_request: [main]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Python ${{ matrix.python-version }}
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      # Only slow tests are performed here. This project user Azure Cosmos DB
+      # The support around Cosmos DB as containers is very limited
+      - name: Run fast tests
+        run: |
+          pytest -svv
+  publish-container:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.REGISTRY_NAME }}.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - run: |
+          docker build -t ${{ secrets.REGISTRY_NAME }}.azurecr.io/todoapi:${{ github.sha }} .
+          docker push ${{ secrets.REGISTRY_NAME }}.azurecr.io/todoapi:${{ github.sha }}
