@@ -1,6 +1,9 @@
+import logging
+import os
 from datetime import date
 from typing import List
 
+from opencensus.ext.azure.log_exporter import AzureLogHandler
 from fastapi import APIRouter, HTTPException, Body
 from fastapi.responses import JSONResponse
 
@@ -8,6 +11,11 @@ import config
 from src.adapters import repository
 from src.service_layer import services
 from src.domain.model import InvalidDueDate
+
+logger = logging.getLogger(__name__)
+logger.addHandler(
+    AzureLogHandler(connection_string=os.environ["APP_INSIGHTS_INSTRUMENTATION_KEY"])
+)
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 
